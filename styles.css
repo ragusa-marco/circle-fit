@@ -48,6 +48,77 @@ body {
   touch-action: none;
 }
 
+.radius-control {
+  position: absolute;
+  left: clamp(10px, 2.2vw, 28px);
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 86px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+#circleCanvas,
+.radius-control,
+.hud,
+.game-title {
+  user-select: none;
+}
+
+.radius-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+#radiusValue {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+}
+
+.slider-wrap {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 198px;
+  pointer-events: none;
+}
+
+#radiusSlider {
+  width: 192px;
+  height: 20px;
+  margin: 0;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  accent-color: #59d9c2;
+  cursor: ns-resize;
+  pointer-events: auto;
+}
+
+.game-title {
+  position: absolute;
+  top: clamp(16px, 2.5vw, 24px);
+  left: clamp(14px, 2.5vw, 28px);
+  z-index: 2;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+}
+
 .hud {
   position: absolute;
   top: clamp(14px, 3vw, 28px);
@@ -55,7 +126,7 @@ body {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  width: min(calc(100vw - 28px), 520px);
+  width: min(calc(100vw - 28px), 420px);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -73,13 +144,8 @@ body {
 .hud-block {
   display: grid;
   align-content: center;
-  min-width: 96px;
+  min-width: 240px;
   padding: 8px 12px;
-}
-
-.hud-block-wide {
-  flex: 1;
-  min-width: 0;
 }
 
 .hud-label {
@@ -91,8 +157,7 @@ body {
   text-transform: uppercase;
 }
 
-#scoreValue,
-#fitValue {
+#scoreValue {
   overflow: hidden;
   color: var(--ink);
   font-size: 18px;
@@ -100,6 +165,23 @@ body {
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+#commentText {
+  position: absolute;
+  top: calc(clamp(14px, 3vw, 28px) + 66px);
+  left: 50%;
+  width: min(calc(100vw - 28px), 420px);
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 #resetButton {
@@ -121,20 +203,43 @@ body {
 }
 
 @media (max-width: 520px) {
+  .radius-control {
+    left: 6px;
+    width: 72px;
+  }
+
+  #radiusValue {
+    font-size: 18px;
+  }
+
+  .slider-wrap {
+    width: 72px;
+    height: 160px;
+  }
+
+  #radiusSlider {
+    width: 154px;
+  }
+
   .hud {
     top: 10px;
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr auto;
   }
 
   .hud-block {
-    min-width: 0;
+    min-width: 170px;
     padding-inline: 10px;
   }
 
-  #scoreValue,
-  #fitValue {
+  #scoreValue {
     font-size: 15px;
+  }
+
+  #commentText {
+    top: 70px;
+    width: min(calc(100vw - 20px), 420px);
+    font-size: 12px;
   }
 
   #resetButton {

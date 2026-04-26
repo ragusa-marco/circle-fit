@@ -8,19 +8,33 @@
   </head>
   <body>
     <main class="game">
+      <h1 class="game-title">draw the perfect circle</h1>
       <canvas id="circleCanvas" aria-label="Circle drawing game"></canvas>
+
+      <aside class="radius-control" aria-label="Radius control">
+        <span class="radius-label">Radius</span>
+        <strong id="radiusValue">300</strong>
+        <div class="slider-wrap">
+          <input
+            id="radiusSlider"
+            type="range"
+            min="100"
+            max="300"
+            step="1"
+            value="300"
+            aria-label="Circle radius"
+          >
+        </div>
+      </aside>
 
       <section class="hud" aria-live="polite">
         <div class="hud-block">
           <span class="hud-label">Score</span>
           <strong id="scoreValue">--</strong>
         </div>
-        <div class="hud-block hud-block-wide">
-          <span class="hud-label">Fit</span>
-          <strong id="fitValue">Ready</strong>
-        </div>
         <button id="resetButton" type="button" title="Reset attempt">Reset</button>
       </section>
+      <p id="commentText">Start and finish on cue</p>
     </main>
 
     <script src="script.js"></script>

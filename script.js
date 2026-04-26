@@ -1,14 +1,18 @@
 const canvas = document.querySelector("#circleCanvas");
 const ctx = canvas.getContext("2d");
 const scoreValue = document.querySelector("#scoreValue");
-const fitValue = document.querySelector("#fitValue");
+const commentText = document.querySelector("#commentText");
 const resetButton = document.querySelector("#resetButton");
+const radiusSlider = document.querySelector("#radiusSlider");
+const radiusValue = document.querySelector("#radiusValue");
 
-const TARGET_RADIUS = 300;
+const MIN_RADIUS = 100;
+const MAX_RADIUS = 300;
 const START_HIT_RADIUS = 44;
 const TWO_PI = Math.PI * 2;
 const MIN_POINT_DISTANCE = 2.4;
 
+let targetRadius = Number(radiusSlider.value);
 let width = 0;
 let height = 0;
 let center = { x: 0, y: 0 };
@@ -19,6 +23,172 @@ let lastResult = null;
 let message = "Ready";
 let flashUntil = 0;
 let activePointerId = null;
+let sliderDragging = false;
+let showRadiusHint = false;
+
+function buildCommentPool(starts, ends) {
+  const comments = [];
+  for (const start of starts) {
+    for (const end of ends) {
+      comments.push(`${start} ${end}`);
+    }
+  }
+  return comments;
+}
+
+const COMMENT_POOLS = {
+  terrible: buildCommentPool(
+    [
+      "That circle declared artistic independence,",
+      "Geometry just filed a complaint,",
+      "The compass left the chat,",
+      "That line took the scenic route,",
+      "The center point feels abandoned,",
+      "Your arc became a travel documentary,",
+      "That was a bold interpretation of round,",
+      "Even chaos looked surprised,",
+      "The radius is emotionally unavailable,",
+      "You invented a new shape family,",
+    ],
+    [
+      "but confidence points are sky-high.",
+      "and somehow still had plot twists.",
+      "yet the effort was legendary.",
+      "but it had undeniable character.",
+      "and the drama was impeccable.",
+      "but your ambition is 10/10.",
+      "and the energy was elite.",
+      "yet it was weirdly entertaining.",
+      "and I respect the audacity.",
+      "but we go again stronger.",
+    ],
+  ),
+  bad: buildCommentPool(
+    [
+      "Close to circular-ish,",
+      "That almost negotiated with geometry,",
+      "The curve had potential,",
+      "You were one wobble from glory,",
+      "The circle blueprint is visible,",
+      "Solid attempt with extra spice,",
+      "The line mostly remembered the assignment,",
+      "There is a circle in there,",
+      "Progress detected by the math engine,",
+      "That was chaotic-good roundness,",
+    ],
+    [
+      "just needed fewer detours.",
+      "with slightly too much freestyle.",
+      "and a brave amount of wiggle.",
+      "but the loop got rebellious.",
+      "just tighten the corners that are not corners.",
+      "and we are warming up nicely.",
+      "with bonus turbulence.",
+      "so the next one should pop.",
+      "and the trend line is up.",
+      "just polish the landing.",
+    ],
+  ),
+  medium: buildCommentPool(
+    [
+      "Now we are cooking,",
+      "That was convincingly round,",
+      "Nice control on that pass,",
+      "The circle vibes are strong,",
+      "You are in the groove,",
+      "That was clean with minor wobble,",
+      "Pretty solid loop work,",
+      "The radius stayed mostly loyal,",
+      "Good balance of speed and control,",
+      "That was a respectable orbit,",
+    ],
+    [
+      "with just a small cleanup pass left.",
+      "and the form is getting sharp.",
+      "plus a nice recovery at the end.",
+      "and you can feel the consistency.",
+      "with measurable improvement.",
+      "and the confidence is visible.",
+      "just keep that tempo.",
+      "and the finish was steady.",
+      "with only light drift.",
+      "ready for a high-score run.",
+    ],
+  ),
+  good: buildCommentPool(
+    [
+      "That was seriously smooth,",
+      "Very strong circle control,",
+      "You are drawing like a compass,",
+      "That loop looked polished,",
+      "Great precision on that one,",
+      "Excellent rhythm and closure,",
+      "That was a quality arc all around,",
+      "You made round look easy,",
+      "Now that is clean execution,",
+      "The geometry gods nodded,",
+    ],
+    [
+      "and the score agrees.",
+      "with pro-level steadiness.",
+      "and almost no panic wiggle.",
+      "that was confidently precise.",
+      "and the closing point was tidy.",
+      "with a premium finish.",
+      "that is leaderboard material.",
+      "and the line discipline was excellent.",
+      "with lovely radius control.",
+      "keep that exact energy.",
+    ],
+  ),
+  excellent: buildCommentPool(
+    [
+      "That was unreal precision,",
+      "Absolute circle wizardry,",
+      "You just bullied geometry,",
+      "That loop was near perfect,",
+      "Masterclass in roundness,",
+      "You drew that like a machine,",
+      "Peak control unlocked,",
+      "That was elite-level clean,",
+      "The compass is now your intern,",
+      "Perfection nearly signed off,",
+    ],
+    [
+      "and I have nothing to nitpick.",
+      "that was art and science.",
+      "with textbook closure.",
+      "and the math is applauding.",
+      "that was outrageously good.",
+      "with almost zero drift.",
+      "and the execution was surgical.",
+      "that is hall-of-fame material.",
+      "with championship composure.",
+      "run it back for style points.",
+    ],
+  ),
+};
+
+function scoreBand(score) {
+  if (score < 20) {
+    return "terrible";
+  }
+  if (score < 40) {
+    return "bad";
+  }
+  if (score < 65) {
+    return "medium";
+  }
+  if (score < 85) {
+    return "good";
+  }
+  return "excellent";
+}
+
+function randomScoreComment(score) {
+  const pool = COMMENT_POOLS[scoreBand(score)];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function resizeCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -55,8 +225,8 @@ function pointAngle(point) {
 
 function startPoint() {
   return {
-    x: center.x + Math.cos(startAngle) * TARGET_RADIUS,
-    y: center.y + Math.sin(startAngle) * TARGET_RADIUS,
+    x: center.x + Math.cos(startAngle) * targetRadius,
+    y: center.y + Math.sin(startAngle) * targetRadius,
   };
 }
 
@@ -71,6 +241,13 @@ function clamp(value, min = 0, max = 1) {
 function starterQuality(point) {
   const miss = distance(point, startPoint());
   return clamp(1 - miss / START_HIT_RADIUS);
+}
+
+function setTargetRadius(rawRadius) {
+  const parsed = Number(rawRadius);
+  targetRadius = clamp(Number.isFinite(parsed) ? parsed : MAX_RADIUS, MIN_RADIUS, MAX_RADIUS);
+  radiusSlider.value = String(Math.round(targetRadius));
+  radiusValue.textContent = String(Math.round(targetRadius));
 }
 
 function isNearStarter(point) {
@@ -123,7 +300,7 @@ function calculateScore(sample) {
   const bins = new Uint8Array(180);
 
   for (const point of sample) {
-    const radialError = Math.abs(pointRadius(point) - TARGET_RADIUS);
+    const radialError = Math.abs(pointRadius(point) - targetRadius);
     squaredError += radialError * radialError;
 
     if (radialError <= 92) {
@@ -136,7 +313,7 @@ function calculateScore(sample) {
   const coveredBins = bins.reduce((total, value) => total + value, 0);
   const coverage = coveredBins / bins.length;
   const gap = largestEmptyRun(bins) / bins.length;
-  const circumference = TWO_PI * TARGET_RADIUS;
+  const circumference = TWO_PI * targetRadius;
   const drawnLength = pathLength(sample);
   const lengthQuality = clamp(1 - Math.abs(drawnLength / circumference - 1) * 1.15);
   const radialQuality = clamp(1 - rms / 82);
@@ -175,7 +352,7 @@ function resetAttempt() {
   message = "Start and finish on cue";
   activePointerId = null;
   scoreValue.textContent = "--";
-  fitValue.textContent = message;
+  commentText.textContent = message;
 }
 
 function beginDrawing(event) {
@@ -185,7 +362,7 @@ function beginDrawing(event) {
   if (!isNearStarter(point)) {
     flashUntil = performance.now() + 620;
     message = "Cue missed";
-    fitValue.textContent = message;
+    commentText.textContent = message;
     return;
   }
 
@@ -195,7 +372,7 @@ function beginDrawing(event) {
   lastResult = null;
   isDrawing = true;
   message = "Return to start cue";
-  fitValue.textContent = message;
+  commentText.textContent = message;
   scoreValue.textContent = "--";
   addPoint(point);
 }
@@ -220,7 +397,11 @@ function finishDrawing(event) {
   activePointerId = null;
   lastResult = calculateScore(points);
   scoreValue.textContent = String(lastResult.score);
-  fitValue.textContent = lastResult.closureQuality >= 0.6 ? lastResult.label : "Finish on cue";
+  if (lastResult.closureQuality >= 0.6) {
+    commentText.textContent = randomScoreComment(lastResult.score);
+  } else {
+    commentText.textContent = "Close the loop on the cue and try again.";
+  }
 
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
@@ -245,17 +426,17 @@ function drawBackground() {
 }
 
 function drawTargetCircle() {
-  if (!lastResult) {
+  if (!lastResult && !showRadiusHint) {
     return;
   }
 
   ctx.save();
-  ctx.setLineDash([4, 14]);
+  ctx.setLineDash(showRadiusHint ? [2, 9] : [4, 14]);
   ctx.lineCap = "round";
-  ctx.strokeStyle = "rgba(246, 241, 228, 0.2)";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = showRadiusHint ? "rgba(89, 217, 194, 0.86)" : "rgba(246, 241, 228, 0.2)";
+  ctx.lineWidth = showRadiusHint ? 2.6 : 2;
   ctx.beginPath();
-  ctx.arc(center.x, center.y, TARGET_RADIUS, 0, TWO_PI);
+  ctx.arc(center.x, center.y, targetRadius, 0, TWO_PI);
   ctx.stroke();
   ctx.restore();
 }
@@ -331,13 +512,39 @@ function render(now) {
   requestAnimationFrame(render);
 }
 
+function handleRadiusInput(event) {
+  setTargetRadius(event.target.value);
+}
+
+function beginSliderDrag() {
+  sliderDragging = true;
+  showRadiusHint = true;
+}
+
+function endSliderDrag() {
+  if (!sliderDragging) {
+    return;
+  }
+
+  sliderDragging = false;
+  showRadiusHint = false;
+}
+
 window.addEventListener("resize", resizeCanvas);
+window.addEventListener("pointerup", endSliderDrag);
+window.addEventListener("mouseup", endSliderDrag);
+window.addEventListener("touchend", endSliderDrag);
 canvas.addEventListener("pointerdown", beginDrawing);
 canvas.addEventListener("pointermove", continueDrawing);
 canvas.addEventListener("pointerup", finishDrawing);
 canvas.addEventListener("pointercancel", finishDrawing);
 resetButton.addEventListener("click", resetAttempt);
+radiusSlider.addEventListener("input", handleRadiusInput);
+radiusSlider.addEventListener("pointerdown", beginSliderDrag);
+radiusSlider.addEventListener("mousedown", beginSliderDrag);
+radiusSlider.addEventListener("touchstart", beginSliderDrag, { passive: true });
 
+setTargetRadius(targetRadius);
 resizeCanvas();
 resetAttempt();
 requestAnimationFrame(render);
